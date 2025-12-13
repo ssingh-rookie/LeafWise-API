@@ -1,61 +1,30 @@
 {
   "version": 2,
-  "installCommand": "pnpm install",
+  "framework": null,
   "buildCommand": "pnpm prisma generate",
-  "functions": {
-    "api/index.ts": {
-      "memory": 1024,
-      "maxDuration": 60
+  "installCommand": "pnpm install",
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api/v1/:path*",
-      "destination": "/api"
+      "src": "/api/v1/(.*)",
+      "dest": "/api/index.ts"
     },
     {
-      "source": "/health",
-      "destination": "/api"
+      "src": "/health",
+      "dest": "/api/index.ts"
     },
     {
-      "source": "/:path*",
-      "destination": "/api"
+      "src": "/(.*)",
+      "dest": "/api/index.ts"
     }
   ],
   "env": {
     "NODE_ENV": "production"
   },
-  "regions": ["syd1"],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, X-Requested-With"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
-      ]
-    }
-  ]
+  "regions": ["syd1"]
 }
