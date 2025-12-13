@@ -2,7 +2,8 @@
   "version": 2,
   "framework": null,
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm prisma generate",
+  "buildCommand": "",
+  "outputDirectory": ".",
   "functions": {
     "api/index.ts": {
       "memory": 1024,
