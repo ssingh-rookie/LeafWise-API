@@ -10,18 +10,18 @@
       "maxDuration": 60
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/v1/(.*)",
-      "dest": "/dist/main.js"
+      "source": "/api/v1/:path*",
+      "destination": "/dist/main.js"
     },
     {
-      "src": "/health",
-      "dest": "/dist/main.js"
+      "source": "/health",
+      "destination": "/dist/main.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/dist/main.js"
+      "source": "/:path*",
+      "destination": "/dist/main.js"
     }
   ],
   "env": {
