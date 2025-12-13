@@ -5,7 +5,6 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { createClient } from '@supabase/supabase-js';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -23,7 +22,8 @@ export interface AuthTokens {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private supabase: SupabaseClient | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private supabase: any = null;
 
   constructor(
     private readonly jwtService: JwtService,
@@ -31,7 +31,7 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  private getSupabaseClient(): SupabaseClient {
+  private getSupabaseClient() {
     if (!this.supabase) {
       this.supabase = createClient(
         this.config.get<string>('database.supabase.url')!,
@@ -145,8 +145,9 @@ export class AuthService {
   }
 
   private generateTokens(payload: TokenPayload): AuthTokens {
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '30d' });
+    const tokenPayload = { sub: payload.sub, email: payload.email };
+    const accessToken = this.jwtService.sign(tokenPayload);
+    const refreshToken = this.jwtService.sign(tokenPayload, { expiresIn: '30d' });
     const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
 
     return {
