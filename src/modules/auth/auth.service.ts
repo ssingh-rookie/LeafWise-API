@@ -4,7 +4,8 @@
 
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -22,22 +23,28 @@ export interface AuthTokens {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly supabase: SupabaseClient;
+  private supabase: SupabaseClient | null = null;
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-  ) {
-    this.supabase = createClient(
-      this.config.get<string>('database.supabase.url')!,
-      this.config.get<string>('database.supabase.anonKey')!,
-    );
+  ) {}
+
+  private getSupabaseClient(): SupabaseClient {
+    if (!this.supabase) {
+      this.supabase = createClient(
+        this.config.get<string>('database.supabase.url')!,
+        this.config.get<string>('database.supabase.anonKey')!,
+      );
+    }
+    return this.supabase;
   }
 
   async signUp(email: string, password: string, name: string) {
     // Create user in Supabase Auth
-    const { data: authData, error: authError } = await this.supabase.auth.signUp({
+    const supabase = this.getSupabaseClient();
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -76,8 +83,9 @@ export class AuthService {
 
   async signIn(email: string, password: string) {
     // Authenticate with Supabase
+    const supabase = this.getSupabaseClient();
     const { data: authData, error: authError } =
-      await this.supabase.auth.signInWithPassword({
+      await supabase.auth.signInWithPassword({
         email,
         password,
       });

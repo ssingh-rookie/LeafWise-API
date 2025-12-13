@@ -31,18 +31,6 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      // Add query logging in development
-      if (process.env.NODE_ENV === 'development') {
-        this._client.$use(async (params, next) => {
-          const before = Date.now();
-          const result = await next(params);
-          const after = Date.now();
-          this.logger.debug(
-            `Query ${params.model}.${params.action} took ${after - before}ms`,
-          );
-          return result;
-        });
-      }
     }
 
     return this._client;

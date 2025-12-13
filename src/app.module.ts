@@ -42,15 +42,7 @@ import { HealthCheckModule } from './modules/health-check/health-check.module';
     }),
 
     // Event Emitter for cross-module communication
-    EventEmitterModule.forRoot({
-      wildcard: false,
-      delimiter: '.',
-      newListener: false,
-      removeListener: false,
-      maxListeners: 10,
-      verboseMemoryLeak: true,
-      ignoreErrors: false,
-    }),
+    EventEmitterModule.forRoot(),
 
     // Rate limiting
     ThrottlerModule.forRoot([
