@@ -2,27 +2,17 @@
   "version": 2,
   "framework": null,
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm prisma generate && pnpm build",
-  "outputDirectory": "dist",
-  "builds": [
-    {
-      "src": "dist/main.js",
-      "use": "@vercel/node"
+  "buildCommand": "pnpm prisma generate && pnpm build && mkdir -p api && cp dist/main.js api/index.js",
+  "functions": {
+    "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 60
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/v1/(.*)",
-      "dest": "/dist/main.js"
-    },
-    {
-      "src": "/health",
-      "dest": "/dist/main.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/main.js"
-    }
+  },
+  "rewrites": [
+    { "source": "/api/v1/:path*", "destination": "/api" },
+    { "source": "/health", "destination": "/api" },
+    { "source": "/:path*", "destination": "/api" }
   ],
   "env": {
     "NODE_ENV": "production"
