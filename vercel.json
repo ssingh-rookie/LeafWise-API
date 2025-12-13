@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "pnpm build",
+  "buildCommand": "pnpm build && pnpm prisma generate",
   "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "framework": null,
   "functions": {
     "dist/main.js": {
       "memory": 1024,
-      "maxDuration": 30
+      "maxDuration": 60
     }
   },
   "routes": [
@@ -27,7 +27,7 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "regions": ["sfo1"],
+  "regions": ["syd1"],
   "headers": [
     {
       "source": "/api/(.*)",
@@ -35,6 +35,27 @@
         {
           "key": "Cache-Control",
           "value": "no-store, max-age=0"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Requested-With"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     }
