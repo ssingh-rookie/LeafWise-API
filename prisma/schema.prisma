@@ -1,0 +1,498 @@
+// ============================================================================
+// LeafWise API - Prisma Schema
+// ============================================================================
+// Run `pnpm db:generate` after changes to regenerate the client
+// Run `pnpm db:migrate:dev` to create migrations
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pgvector(map: "vector"), uuidOssp(map: "uuid-ossp")]
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum ExperienceLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+enum HomeType {
+  apartment
+  house
+  office
+}
+
+enum LightCondition {
+  low
+  medium
+  bright
+  direct
+}
+
+enum HumidityLevel {
+  low
+  medium
+  high
+}
+
+enum SubscriptionTier {
+  free
+  premium
+}
+
+enum AcquisitionMethod {
+  purchased
+  propagated
+  gifted
+  unknown
+}
+
+enum PlantHealth {
+  thriving
+  healthy
+  struggling
+  critical
+}
+
+enum IssueType {
+  disease
+  pest
+  nutrient
+  environmental
+  unknown
+}
+
+enum IssueStatus {
+  active
+  treating
+  resolved
+  recurring
+}
+
+enum CareAction {
+  watered
+  fertilized
+  repotted
+  pruned
+  treated
+  custom
+}
+
+enum ReminderPriority {
+  low
+  medium
+  high
+}
+
+enum ContentType {
+  conversation
+  diagnosis
+  advice
+  outcome
+}
+
+enum TipsFrequency {
+  daily
+  weekly
+  none
+}
+
+// ============================================================================
+// USER & AUTH
+// ============================================================================
+
+model User {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Profile
+  experienceLevel ExperienceLevel @default(beginner) @map("experience_level")
+
+  // Location
+  city        String?
+  climateZone String? @map("climate_zone")
+  hemisphere  String? // 'northern' | 'southern'
+
+  // Home Environment
+  homeType        HomeType?       @map("home_type")
+  lightConditions LightCondition? @map("light_conditions")
+  humidityLevel   HumidityLevel?  @map("humidity_level")
+
+  // Notification Preferences
+  wateringReminders Boolean       @default(true) @map("watering_reminders")
+  healthAlerts      Boolean       @default(true) @map("health_alerts")
+  tipsFrequency     TipsFrequency @default(weekly) @map("tips_frequency")
+
+  // Subscription
+  subscriptionTier    SubscriptionTier @default(free) @map("subscription_tier")
+  subscriptionExpires DateTime?        @map("subscription_expires")
+  stripeCustomerId    String?          @unique @map("stripe_customer_id")
+
+  // Relations
+  plants               Plant[]
+  conversationSessions ConversationSession[]
+  semanticMemories     SemanticMemory[]
+  usageLogs            UsageLog[]
+  reminders            Reminder[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// PLANTS
+// ============================================================================
+
+model Species {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  scientificName String   @unique @map("scientific_name")
+  commonNames    String[] @map("common_names")
+  family         String
+  genus          String
+
+  // Care Requirements
+  lightRequirement String @map("light_requirement")
+  waterFrequency   String @map("water_frequency")
+  humidityLevel    String @map("humidity_level")
+  temperature      String
+  toxicity         String?
+  difficulty       String // 'easy' | 'moderate' | 'difficult'
+
+  // Additional Info
+  description        String?
+  propagationMethods String[] @map("propagation_methods")
+  commonIssues       String[] @map("common_issues")
+
+  // External References
+  plantIdSpeciesId String? @map("plant_id_species_id")
+
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  plants Plant[]
+
+  @@map("species")
+}
+
+model Plant {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  speciesId String   @map("species_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Identification
+  nickname String?
+
+  // Acquisition
+  acquiredDate      DateTime?         @map("acquired_date")
+  acquisitionMethod AcquisitionMethod @default(unknown) @map("acquisition_method")
+
+  // Location
+  locationInHome String         @map("location_in_home")
+  lightExposure  LightCondition @map("light_exposure")
+
+  // Care Schedule
+  wateringFrequencyDays     Int       @default(7) @map("watering_frequency_days")
+  lastWatered               DateTime? @map("last_watered")
+  nextWaterDue              DateTime? @map("next_water_due")
+  fertilizingFrequencyWeeks Int       @default(4) @map("fertilizing_frequency_weeks")
+  lastFertilized            DateTime? @map("last_fertilized")
+  lastRepotted              DateTime? @map("last_repotted")
+
+  // Health Status
+  currentHealth PlantHealth @default(healthy) @map("current_health")
+
+  // Relations
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  species              Species               @relation(fields: [speciesId], references: [id])
+  healthIssues         HealthIssue[]
+  careLogs             CareLog[]
+  photos               PlantPhoto[]
+  conversationSessions ConversationSession[]
+  reminders            Reminder[]
+
+  @@index([userId])
+  @@index([userId, currentHealth])
+  @@index([userId, nextWaterDue])
+  @@map("plants")
+}
+
+model PlantPhoto {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  plantId   String   @map("plant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Storage
+  storageUrl   String  @map("storage_url")
+  thumbnailUrl String? @map("thumbnail_url")
+
+  // Metadata
+  type     String // 'identification' | 'health' | 'progress'
+  takenAt  DateTime @map("taken_at")
+  fileSize Int      @map("file_size")
+
+  // Relations
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@index([plantId])
+  @@index([plantId, type])
+  @@map("plant_photos")
+}
+
+model CareLog {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  plantId   String   @map("plant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Care Details
+  action       CareAction
+  customAction String?    @map("custom_action")
+  performedAt  DateTime   @map("performed_at")
+  notes        String?
+
+  // Relations
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@index([plantId])
+  @@index([plantId, performedAt])
+  @@map("care_logs")
+}
+
+// ============================================================================
+// HEALTH
+// ============================================================================
+
+model HealthIssue {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  plantId   String   @map("plant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Diagnosis
+  issueType  IssueType @map("issue_type")
+  diagnosis  String
+  confidence Float     @default(0)
+  symptoms   String[]
+
+  // Treatment
+  treatmentPlan String? @map("treatment_plan")
+  cause         String?
+
+  // Status
+  status     IssueStatus @default(active)
+  reportedAt DateTime    @map("reported_at")
+  resolvedAt DateTime?   @map("resolved_at")
+
+  // AI Interaction
+  diagnosisSource String? @map("diagnosis_source")
+  aiSessionId     String? @map("ai_session_id") @db.Uuid
+
+  // Relations
+  plant          Plant           @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  treatmentSteps TreatmentStep[]
+
+  @@index([plantId])
+  @@index([plantId, status])
+  @@map("health_issues")
+}
+
+model TreatmentStep {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  healthIssueId String   @map("health_issue_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Step Details
+  stepOrder Int    @map("step_order")
+  action    String
+  details   String?
+  timeline  String?
+  priority  String // 'immediate' | 'soon' | 'monitor'
+
+  // Completion
+  completed   Boolean   @default(false)
+  completedAt DateTime? @map("completed_at")
+
+  // Relations
+  healthIssue HealthIssue @relation(fields: [healthIssueId], references: [id], onDelete: Cascade)
+
+  @@index([healthIssueId])
+  @@map("treatment_steps")
+}
+
+// ============================================================================
+// CONVERSATIONS
+// ============================================================================
+
+model ConversationSession {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  plantId   String?  @map("plant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Session Info
+  startedAt     DateTime @map("started_at")
+  lastMessageAt DateTime @map("last_message_at")
+  messageCount  Int      @default(0) @map("message_count")
+
+  // AI Usage
+  totalInputTokens  Int      @default(0) @map("total_input_tokens")
+  totalOutputTokens Int      @default(0) @map("total_output_tokens")
+  estimatedCost     Float    @default(0) @map("estimated_cost")
+  modelsUsed        String[] @map("models_used")
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant    Plant?    @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  messages Message[]
+
+  @@index([userId])
+  @@index([userId, lastMessageAt])
+  @@index([plantId])
+  @@map("conversation_sessions")
+}
+
+model Message {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sessionId String   @map("session_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Content
+  role    String // 'user' | 'assistant' | 'system'
+  content String
+
+  // For Assistant Messages
+  modelUsed    String? @map("model_used")
+  inputTokens  Int?    @map("input_tokens")
+  outputTokens Int?    @map("output_tokens")
+
+  // Extracted Info
+  actionItems      Json?    @map("action_items")
+  plantsMentioned  String[] @map("plants_mentioned") @db.Uuid
+  issuesIdentified String[] @map("issues_identified") @db.Uuid
+
+  // Relations
+  session ConversationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([sessionId, createdAt])
+  @@map("messages")
+}
+
+// ============================================================================
+// SEMANTIC MEMORY (RAG)
+// ============================================================================
+
+model SemanticMemory {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Content
+  contentType ContentType @map("content_type")
+  contentText String      @map("content_text")
+
+  // Vector Embedding (1536 dimensions for OpenAI embeddings)
+  embedding Unsupported("vector(1536)")
+
+  // References
+  sourceSessionId String? @map("source_session_id") @db.Uuid
+  sourcePlantId   String? @map("source_plant_id") @db.Uuid
+
+  // Metadata
+  relevanceScore Float @default(1.0) @map("relevance_score")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("semantic_memories")
+}
+
+// ============================================================================
+// REMINDERS
+// ============================================================================
+
+model Reminder {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  plantId   String   @map("plant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Reminder Details
+  action       CareAction
+  customAction String?          @map("custom_action")
+  dueDate      DateTime         @map("due_date")
+  priority     ReminderPriority @default(medium)
+
+  // Recurrence
+  isRecurring        Boolean @default(false) @map("is_recurring")
+  recurringFrequency String? @map("recurring_frequency")
+  recurringInterval  Int?    @map("recurring_interval")
+
+  // Status
+  completed   Boolean   @default(false)
+  completedAt DateTime? @map("completed_at")
+  skipped     Boolean   @default(false)
+  skippedAt   DateTime? @map("skipped_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, dueDate])
+  @@index([userId, completed, dueDate])
+  @@map("reminders")
+}
+
+// ============================================================================
+// USAGE TRACKING
+// ============================================================================
+
+model UsageLog {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Usage Details
+  action   String // 'identification' | 'health_assessment' | 'chat' | 'embedding'
+  provider String // 'plant-id' | 'claude' | 'openai' | 'gemini'
+  model    String?
+  cost     Float  @default(0)
+
+  // Token Tracking
+  inputTokens  Int? @map("input_tokens")
+  outputTokens Int? @map("output_tokens")
+
+  // Request Context
+  endpoint  String?
+  latencyMs Int?    @map("latency_ms")
+  success   Boolean @default(true)
+  errorCode String? @map("error_code")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, action, createdAt])
+  @@index([createdAt])
+  @@map("usage_logs")
+}
