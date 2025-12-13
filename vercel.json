@@ -1,22 +1,16 @@
 {
   "version": 2,
-  "framework": null,
-  "installCommand": "pnpm install",
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "functions": {
-    "api/index.ts": {
-      "memory": 1024,
-      "maxDuration": 60
+  "builds": [
+    {
+      "src": "src/main.ts",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
-    { "source": "/api/v1/:path*", "destination": "/api" },
-    { "source": "/health", "destination": "/api" },
-    { "source": "/:path*", "destination": "/api" }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "regions": ["syd1"]
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "src/main.ts",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
+    }
+  ]
 }
