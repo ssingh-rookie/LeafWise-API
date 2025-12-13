@@ -2,9 +2,9 @@
   "version": 2,
   "framework": null,
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm prisma generate && pnpm build && mkdir -p api && cp dist/main.js api/index.js",
+  "buildCommand": "pnpm prisma generate",
   "functions": {
-    "api/index.js": {
+    "api/index.ts": {
       "memory": 1024,
       "maxDuration": 60
     }
