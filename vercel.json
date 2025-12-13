@@ -1,11 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "pnpm build && pnpm prisma generate",
-  "outputDirectory": "dist",
   "installCommand": "pnpm install",
-  "framework": null,
+  "buildCommand": "pnpm prisma generate",
   "functions": {
-    "dist/main.js": {
+    "api/index.ts": {
       "memory": 1024,
       "maxDuration": 60
     }
@@ -13,15 +11,15 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "/dist/main.js"
+      "destination": "/api"
     },
     {
       "source": "/health",
-      "destination": "/dist/main.js"
+      "destination": "/api"
     },
     {
       "source": "/:path*",
-      "destination": "/dist/main.js"
+      "destination": "/api"
     }
   ],
   "env": {
