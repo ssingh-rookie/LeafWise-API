@@ -34,7 +34,8 @@ export class StorageService {
       throw error;
     }
 
-    return this.getPublicUrl(data.path);
+    // Use signed URLs for private bucket (1 hour expiry)
+    return this.getSignedUrl(data.path, 3600);
   }
 
   async deletePhoto(path: string): Promise<void> {
@@ -48,5 +49,18 @@ export class StorageService {
   getPublicUrl(path: string): string {
     const { data } = this.supabase.storage.from(this.bucket).getPublicUrl(path);
     return data.publicUrl;
+  }
+
+  async getSignedUrl(path: string, expiresInSeconds: number = 3600): Promise<string> {
+    const { data, error } = await this.supabase.storage
+      .from(this.bucket)
+      .createSignedUrl(path, expiresInSeconds);
+
+    if (error) {
+      this.logger.error('Failed to create signed URL', error);
+      throw error;
+    }
+
+    return data.signedUrl;
   }
 }
