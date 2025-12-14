@@ -19,7 +19,8 @@ export default registerAs('app', () => ({
   isServerless: !!process.env.VERCEL,
 
   // App URL (for password reset redirects, deep links, etc.)
-  appUrl: process.env.APP_URL || 'http://localhost:3000',
+  // Uses VERCEL_URL on Vercel deployments, otherwise requires APP_URL to be set explicitly
+  appUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.APP_URL,
 
   // CORS
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['*'],
