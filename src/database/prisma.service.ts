@@ -21,16 +21,13 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     if (!this._client) {
       this._client = new PrismaClient({
         log:
-          process.env.NODE_ENV === 'development'
-            ? ['query', 'info', 'warn', 'error']
-            : ['error'],
+          process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
         datasources: {
           db: {
             url: process.env.DATABASE_URL,
           },
         },
       });
-
     }
 
     return this._client;

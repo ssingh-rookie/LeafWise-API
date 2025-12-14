@@ -51,10 +51,7 @@ export class GeminiProvider {
   private readonly apiKey: string;
 
   constructor(private readonly config: ConfigService) {
-    this.modelName = this.config.get<string>(
-      'ai.gemini.defaultModel',
-      'gemini-2.0-flash-exp',
-    );
+    this.modelName = this.config.get<string>('ai.gemini.defaultModel', 'gemini-2.0-flash-exp');
     this.apiKey = this.config.getOrThrow<string>('ai.gemini.apiKey');
   }
 
@@ -123,10 +120,7 @@ If you cannot identify the plant with reasonable confidence, set confidence to 0
       return this.parseResponse(result.response.text());
     } catch (error) {
       const latency = Date.now() - startTime;
-      this.logger.error(
-        `Gemini identification failed after ${latency}ms`,
-        error,
-      );
+      this.logger.error(`Gemini identification failed after ${latency}ms`, error);
       throw this.wrapError(error);
     }
   }
@@ -151,9 +145,7 @@ If you cannot identify the plant with reasonable confidence, set confidence to 0
       return {
         species: {
           scientificName: parsed.scientificName || 'Unknown',
-          commonNames: Array.isArray(parsed.commonNames)
-            ? parsed.commonNames
-            : [],
+          commonNames: Array.isArray(parsed.commonNames) ? parsed.commonNames : [],
           family: parsed.family || 'Unknown',
           genus: parsed.genus || 'Unknown',
           confidence: Math.min(Math.max(parsed.confidence || 0, 0), 1),
@@ -180,27 +172,13 @@ If you cannot identify the plant with reasonable confidence, set confidence to 0
   private wrapError(error: unknown): GeminiError {
     if (error instanceof GeminiError) return error;
 
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     if (errorMessage.includes('quota') || errorMessage.includes('rate')) {
-      return new GeminiError(
-        'Gemini rate limit exceeded',
-        'RATE_LIMIT',
-        true,
-        error as Error,
-      );
+      return new GeminiError('Gemini rate limit exceeded', 'RATE_LIMIT', true, error as Error);
     }
-    if (
-      errorMessage.includes('API key') ||
-      errorMessage.includes('authentication')
-    ) {
-      return new GeminiError(
-        'Invalid Gemini API key',
-        'AUTH_ERROR',
-        false,
-        error as Error,
-      );
+    if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+      return new GeminiError('Invalid Gemini API key', 'AUTH_ERROR', false, error as Error);
     }
 
     return new GeminiError(errorMessage, 'UNKNOWN_ERROR', true, error as Error);

@@ -13,9 +13,13 @@ export default registerAs('app', () => ({
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development',
   isTest: process.env.NODE_ENV === 'test',
+  isPreview: process.env.VERCEL_ENV === 'preview',
 
   // Serverless detection
   isServerless: !!process.env.VERCEL,
+
+  // App URL (for password reset redirects, deep links, etc.)
+  appUrl: process.env.APP_URL || 'http://localhost:3000',
 
   // CORS
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['*'],

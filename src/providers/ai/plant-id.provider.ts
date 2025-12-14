@@ -114,18 +114,13 @@ export class PlantIdProvider {
     private readonly http: HttpService,
   ) {
     this.apiKey = this.config.getOrThrow<string>('ai.plantId.apiKey');
-    this.baseUrl = this.config.get<string>(
-      'ai.plantId.baseUrl',
-      'https://api.plant.id/v3',
-    );
+    this.baseUrl = this.config.get<string>('ai.plantId.baseUrl', 'https://api.plant.id/v3');
     this.timeoutMs = this.config.get<number>('ai.plantId.timeout', 10000);
   }
 
   async identify(images: string[]): Promise<PlantIdIdentificationResult> {
     const startTime = Date.now();
-    this.logger.debug(
-      `Starting Plant.id identification with ${images.length} image(s)`,
-    );
+    this.logger.debug(`Starting Plant.id identification with ${images.length} image(s)`);
 
     try {
       const response = await this.callApiWithRetry<PlantIdApiResponse>(
@@ -146,10 +141,7 @@ export class PlantIdProvider {
       return this.mapIdentificationResponse(response);
     } catch (error) {
       const latency = Date.now() - startTime;
-      this.logger.error(
-        `Plant.id identification failed after ${latency}ms`,
-        error,
-      );
+      this.logger.error(`Plant.id identification failed after ${latency}ms`, error);
       throw this.wrapError(error);
     }
   }
@@ -198,18 +190,12 @@ export class PlantIdProvider {
     return imageBase64;
   }
 
-  private mapIdentificationResponse(
-    response: PlantIdApiResponse,
-  ): PlantIdIdentificationResult {
+  private mapIdentificationResponse(response: PlantIdApiResponse): PlantIdIdentificationResult {
     const { result } = response;
     const topMatch = result.classification.suggestions[0];
 
     if (!topMatch) {
-      throw new PlantIdError(
-        'No plant species could be identified',
-        'NO_MATCH',
-        false,
-      );
+      throw new PlantIdError('No plant species could be identified', 'NO_MATCH', false);
     }
 
     return {
@@ -238,45 +224,19 @@ export class PlantIdProvider {
 
     const axiosError = error as any;
     const status = axiosError?.response?.status;
-    const message =
-      axiosError?.response?.data?.message ||
-      axiosError?.message ||
-      'Unknown error';
+    const message = axiosError?.response?.data?.message || axiosError?.message || 'Unknown error';
 
     if (status === 401) {
-      return new PlantIdError(
-        'Invalid Plant.id API key',
-        'AUTH_ERROR',
-        false,
-        axiosError,
-      );
+      return new PlantIdError('Invalid Plant.id API key', 'AUTH_ERROR', false, axiosError);
     }
     if (status === 429) {
-      return new PlantIdError(
-        'Plant.id rate limit exceeded',
-        'RATE_LIMIT',
-        true,
-        axiosError,
-      );
+      return new PlantIdError('Plant.id rate limit exceeded', 'RATE_LIMIT', true, axiosError);
     }
     if (status >= 500) {
-      return new PlantIdError(
-        'Plant.id service unavailable',
-        'SERVICE_ERROR',
-        true,
-        axiosError,
-      );
+      return new PlantIdError('Plant.id service unavailable', 'SERVICE_ERROR', true, axiosError);
     }
-    if (
-      axiosError?.code === 'ECONNABORTED' ||
-      axiosError?.code === 'ETIMEDOUT'
-    ) {
-      return new PlantIdError(
-        'Plant.id request timeout',
-        'TIMEOUT',
-        true,
-        axiosError,
-      );
+    if (axiosError?.code === 'ECONNABORTED' || axiosError?.code === 'ETIMEDOUT') {
+      return new PlantIdError('Plant.id request timeout', 'TIMEOUT', true, axiosError);
     }
 
     return new PlantIdError(message, 'UNKNOWN_ERROR', false, axiosError);

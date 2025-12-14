@@ -24,12 +24,10 @@ export class StorageService {
     const buffer = Buffer.from(imageBase64, 'base64');
     const filename = `${userId}/${plantId}/${type}-${Date.now()}.jpg`;
 
-    const { data, error } = await this.supabase.storage
-      .from(this.bucket)
-      .upload(filename, buffer, {
-        contentType: 'image/jpeg',
-        upsert: false,
-      });
+    const { data, error } = await this.supabase.storage.from(this.bucket).upload(filename, buffer, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
 
     if (error) {
       this.logger.error('Failed to upload photo', error);

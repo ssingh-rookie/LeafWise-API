@@ -59,3 +59,38 @@ export class RefreshTokenDto {
   @IsString()
   refreshToken: string;
 }
+
+// Forgot Password DTO
+export class ForgotPasswordDto {
+  @ApiProperty({
+    description: 'Email address to send password reset link',
+    example: 'user@example.com',
+  })
+  @IsEmail()
+  email: string;
+}
+
+// Reset Password DTO
+export class ResetPasswordDto {
+  @ApiProperty({
+    description: 'Access token from password reset email link (access_token parameter)',
+  })
+  @IsString()
+  accessToken: string;
+
+  @ApiProperty({
+    description: 'Refresh token from password reset email link (refresh_token parameter)',
+  })
+  @IsString()
+  refreshToken: string;
+
+  @ApiProperty({
+    description: 'New password (minimum 8 characters)',
+    example: 'newSecurePassword123',
+    minLength: 8,
+  })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(100)
+  newPassword: string;
+}

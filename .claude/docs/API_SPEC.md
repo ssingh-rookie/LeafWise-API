@@ -18,11 +18,11 @@
 
 ### Base URL
 
-| Environment | URL |
-|-------------|-----|
-| Production | `https://api.leafwise.app` |
-| Staging | `https://staging-api.leafwise.app` |
-| Local | `http://localhost:3000` |
+| Environment | URL                                |
+| ----------- | ---------------------------------- |
+| Production  | `https://api.leafwise.app`         |
+| Staging     | `https://staging-api.leafwise.app` |
+| Local       | `http://localhost:3000`            |
 
 ### API Version
 
@@ -51,22 +51,24 @@ Authorization: Bearer <jwt_token>
 
 ```typescript
 interface JWTPayload {
-  sub: string;           // User ID
-  email: string;         // User email
-  role: string;          // 'authenticated'
-  iat: number;           // Issued at
-  exp: number;           // Expiration
+  sub: string; // User ID
+  email: string; // User email
+  role: string; // 'authenticated'
+  iat: number; // Issued at
+  exp: number; // Expiration
 }
 ```
 
 ### Unauthenticated Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/v1/auth/signup` | User registration |
-| `POST /api/v1/auth/login` | User login |
-| `POST /api/v1/auth/refresh` | Refresh token |
-| `GET /api/v1/health` | Health check |
+| Endpoint                            | Description               |
+| ----------------------------------- | ------------------------- |
+| `POST /api/v1/auth/signup`          | User registration         |
+| `POST /api/v1/auth/login`           | User login                |
+| `POST /api/v1/auth/refresh`         | Refresh token             |
+| `POST /api/v1/auth/forgot-password` | Request password reset    |
+| `POST /api/v1/auth/reset-password`  | Reset password with token |
+| `GET /api/v1/health`                | Health check              |
 
 ---
 
@@ -75,29 +77,31 @@ interface JWTPayload {
 ### Standard Response Envelope
 
 **Success Response:**
+
 ```typescript
 interface SuccessResponse<T> {
   success: true;
   data: T;
   meta?: {
     pagination?: PaginationMeta;
-    aiCost?: number;          // AI operation cost in USD
-    processingTime?: number;  // Time in milliseconds
+    aiCost?: number; // AI operation cost in USD
+    processingTime?: number; // Time in milliseconds
   };
 }
 ```
 
 **Error Response:**
+
 ```typescript
 interface ErrorResponse {
   success: false;
   error: {
-    code: string;           // Machine-readable error code
-    message: string;        // Human-readable message
-    details?: unknown;      // Additional error context
-    timestamp: string;      // ISO 8601 timestamp
-    path: string;           // Request path
-    requestId: string;      // For debugging
+    code: string; // Machine-readable error code
+    message: string; // Human-readable message
+    details?: unknown; // Additional error context
+    timestamp: string; // ISO 8601 timestamp
+    path: string; // Request path
+    requestId: string; // For debugging
   };
 }
 ```
@@ -139,6 +143,7 @@ GET /api/v1/plants?status=healthy&sort=-createdAt&limit=10
 Create a new user account.
 
 **Request:**
+
 ```typescript
 interface SignupRequest {
   email: string;
@@ -148,6 +153,7 @@ interface SignupRequest {
 ```
 
 **Response:**
+
 ```typescript
 interface SignupResponse {
   success: true;
@@ -172,6 +178,7 @@ interface SignupResponse {
 Authenticate user and receive tokens.
 
 **Request:**
+
 ```typescript
 interface LoginRequest {
   email: string;
@@ -180,6 +187,62 @@ interface LoginRequest {
 ```
 
 **Response:** Same as signup response.
+
+#### POST /api/v1/auth/forgot-password
+
+Request a password reset email. Rate limited to 3 requests per minute.
+
+**Request:**
+
+```typescript
+interface ForgotPasswordRequest {
+  email: string;
+}
+```
+
+**Response:**
+
+```typescript
+interface ForgotPasswordResponse {
+  message: string; // Always returns success message for security
+}
+```
+
+**Security Notes:**
+
+- Always returns 200 OK regardless of whether email exists (prevents enumeration)
+- Reset link sent via Supabase email
+- Link expires in ~1 hour
+
+#### POST /api/v1/auth/reset-password
+
+Reset password using token from email. Rate limited to 5 requests per minute.
+
+**Request:**
+
+```typescript
+interface ResetPasswordRequest {
+  token: string; // Recovery token from email link
+  newPassword: string; // Min 8 characters
+}
+```
+
+**Response:**
+
+```typescript
+interface ResetPasswordResponse {
+  session: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: number;
+  };
+}
+```
+
+**Error Codes:**
+| Code | Description |
+|------|-------------|
+| `UNAUTHORIZED` | Invalid or expired reset token |
 
 ---
 
@@ -190,6 +253,7 @@ interface LoginRequest {
 Get current user profile.
 
 **Response:**
+
 ```typescript
 interface UserProfileResponse {
   success: true;
@@ -223,6 +287,7 @@ interface UserProfileResponse {
 Update current user profile.
 
 **Request:**
+
 ```typescript
 interface UpdateUserRequest {
   name?: string;
@@ -262,6 +327,7 @@ List user's plant collection.
 | sort | string | -createdAt | Sort field |
 
 **Response:**
+
 ```typescript
 interface PlantsListResponse {
   success: true;
@@ -288,6 +354,7 @@ interface PlantsListResponse {
 Get single plant details.
 
 **Response:**
+
 ```typescript
 interface PlantDetailResponse {
   success: true;
@@ -302,7 +369,7 @@ interface PlantDetailResponse {
     locationInHome: string;
     lightExposure: 'low' | 'medium' | 'bright' | 'direct';
     currentHealth: 'thriving' | 'healthy' | 'struggling' | 'critical';
-    
+
     careSchedule: {
       wateringFrequencyDays: number;
       lastWatered: string | null;
@@ -311,7 +378,7 @@ interface PlantDetailResponse {
       lastFertilized: string | null;
       lastRepotted: string | null;
     };
-    
+
     activeIssues: Array<{
       id: string;
       type: string;
@@ -319,21 +386,21 @@ interface PlantDetailResponse {
       status: 'active' | 'treating' | 'resolved';
       reportedAt: string;
     }>;
-    
+
     photos: Array<{
       id: string;
       url: string;
       takenAt: string;
       type: 'identification' | 'health' | 'progress';
     }>;
-    
+
     careHistory: Array<{
       id: string;
       action: 'watered' | 'fertilized' | 'repotted' | 'pruned';
       performedAt: string;
       notes: string | null;
     }>;
-    
+
     createdAt: string;
     updatedAt: string;
   };
@@ -345,15 +412,16 @@ interface PlantDetailResponse {
 Add a new plant to collection.
 
 **Request:**
+
 ```typescript
 interface CreatePlantRequest {
-  speciesId: string;              // From identification or manual selection
+  speciesId: string; // From identification or manual selection
   nickname?: string;
-  acquiredDate?: string;          // ISO 8601 date
+  acquiredDate?: string; // ISO 8601 date
   acquisitionMethod?: 'purchased' | 'propagated' | 'gifted' | 'unknown';
   locationInHome: string;
   lightExposure: 'low' | 'medium' | 'bright' | 'direct';
-  photoId?: string;               // Reference to uploaded photo
+  photoId?: string; // Reference to uploaded photo
 }
 ```
 
@@ -364,6 +432,7 @@ interface CreatePlantRequest {
 Update plant details.
 
 **Request:**
+
 ```typescript
 interface UpdatePlantRequest {
   nickname?: string;
@@ -379,6 +448,7 @@ interface UpdatePlantRequest {
 Remove plant from collection.
 
 **Response:**
+
 ```typescript
 {
   success: true,
@@ -394,10 +464,11 @@ Remove plant from collection.
 Log a care action.
 
 **Request:**
+
 ```typescript
 interface LogCareRequest {
   action: 'watered' | 'fertilized' | 'repotted' | 'pruned';
-  performedAt?: string;    // Defaults to now
+  performedAt?: string; // Defaults to now
   notes?: string;
 }
 ```
@@ -411,13 +482,15 @@ interface LogCareRequest {
 Identify a plant from image.
 
 **Request:**
+
 ```typescript
 interface IdentifyRequest {
-  image: string;                  // Base64 encoded image
+  image: string; // Base64 encoded image
   imageFormat: 'jpeg' | 'png';
-  includeSimilar?: boolean;       // Default: true
-  addToCollection?: boolean;      // Default: false
-  collectionData?: {              // Required if addToCollection is true
+  includeSimilar?: boolean; // Default: true
+  addToCollection?: boolean; // Default: false
+  collectionData?: {
+    // Required if addToCollection is true
     nickname?: string;
     locationInHome: string;
     lightExposure: 'low' | 'medium' | 'bright' | 'direct';
@@ -426,6 +499,7 @@ interface IdentifyRequest {
 ```
 
 **Response:**
+
 ```typescript
 interface IdentifyResponse {
   success: true;
@@ -436,7 +510,7 @@ interface IdentifyResponse {
         scientificName: string;
         commonNames: string[];
         family: string;
-        confidence: number;        // 0-1
+        confidence: number; // 0-1
       };
       similarSpecies: Array<{
         scientificName: string;
@@ -453,7 +527,7 @@ interface IdentifyResponse {
         difficulty: 'easy' | 'moderate' | 'difficult';
       };
     };
-    plantId: string | null;        // If added to collection
+    plantId: string | null; // If added to collection
   };
   meta: {
     aiCost: number;
@@ -480,15 +554,17 @@ interface IdentifyResponse {
 Assess plant health from images and symptoms.
 
 **Request:**
+
 ```typescript
 interface HealthAssessRequest {
-  plantId: string;                // Existing plant in collection
-  images: string[];               // Base64, max 3 images
-  symptomsDescription?: string;   // Optional text description
+  plantId: string; // Existing plant in collection
+  images: string[]; // Base64, max 3 images
+  symptomsDescription?: string; // Optional text description
 }
 ```
 
 **Response:**
+
 ```typescript
 interface HealthAssessResponse {
   success: true;
@@ -498,7 +574,7 @@ interface HealthAssessResponse {
       issues: Array<{
         type: 'disease' | 'pest' | 'nutrient' | 'environmental';
         name: string;
-        probability: number;       // 0-1
+        probability: number; // 0-1
         description: string;
         symptomsMatched: string[];
         cause: string;
@@ -510,8 +586,8 @@ interface HealthAssessResponse {
         timeline: string;
       }>;
     };
-    healthIssueId: string;         // Created issue record
-    disclaimer: string;            // Legal disclaimer
+    healthIssueId: string; // Created issue record
+    disclaimer: string; // Legal disclaimer
   };
   meta: {
     aiCost: number;
@@ -526,6 +602,7 @@ interface HealthAssessResponse {
 Get health issue history for a plant.
 
 **Response:**
+
 ```typescript
 interface HealthIssuesResponse {
   success: true;
@@ -548,6 +625,7 @@ interface HealthIssuesResponse {
 Update health issue status.
 
 **Request:**
+
 ```typescript
 interface UpdateHealthIssueRequest {
   status: 'treating' | 'resolved' | 'recurring';
@@ -564,16 +642,18 @@ interface UpdateHealthIssueRequest {
 Send a message to the AI assistant.
 
 **Request:**
+
 ```typescript
 interface ChatRequest {
-  sessionId?: string;             // Null for new conversation
+  sessionId?: string; // Null for new conversation
   message: string;
-  plantId?: string;               // Optional plant context
-  imageBase64?: string;           // Optional image attachment
+  plantId?: string; // Optional plant context
+  imageBase64?: string; // Optional image attachment
 }
 ```
 
 **Response:**
+
 ```typescript
 interface ChatResponse {
   success: true;
@@ -620,6 +700,7 @@ List user's chat sessions.
 | plantId | string | - | Filter by plant |
 
 **Response:**
+
 ```typescript
 interface ChatSessionsResponse {
   success: true;
@@ -643,6 +724,7 @@ interface ChatSessionsResponse {
 Get full conversation history.
 
 **Response:**
+
 ```typescript
 interface ChatSessionDetailResponse {
   success: true;
@@ -678,10 +760,10 @@ Send a message with streaming response (SSE).
 interface StreamEvent {
   type: 'start' | 'chunk' | 'done' | 'error';
   data: {
-    sessionId?: string;        // On 'start'
-    content?: string;          // On 'chunk'
-    response?: ChatResponse;   // On 'done'
-    error?: ErrorResponse;     // On 'error'
+    sessionId?: string; // On 'start'
+    content?: string; // On 'chunk'
+    response?: ChatResponse; // On 'done'
+    error?: ErrorResponse; // On 'error'
   };
 }
 ```
@@ -701,6 +783,7 @@ Get upcoming care reminders.
 | plantId | string | - | Filter by plant |
 
 **Response:**
+
 ```typescript
 interface RemindersResponse {
   success: true;
@@ -728,11 +811,12 @@ interface CareReminder {
 Mark a reminder as completed.
 
 **Request:**
+
 ```typescript
 interface CompleteReminderRequest {
-  completedAt?: string;     // Defaults to now
+  completedAt?: string; // Defaults to now
   notes?: string;
-  skipped?: boolean;        // If skipping instead of completing
+  skipped?: boolean; // If skipping instead of completing
 }
 ```
 
@@ -741,11 +825,12 @@ interface CompleteReminderRequest {
 Create a custom reminder.
 
 **Request:**
+
 ```typescript
 interface CreateReminderRequest {
   plantId: string;
   action: 'water' | 'fertilize' | 'repot' | 'checkHealth' | 'custom';
-  customAction?: string;       // Required if action is 'custom'
+  customAction?: string; // Required if action is 'custom'
   dueDate: string;
   recurring?: {
     frequency: 'daily' | 'weekly' | 'monthly';
@@ -763,6 +848,7 @@ interface CreateReminderRequest {
 Get current subscription status and usage.
 
 **Response:**
+
 ```typescript
 interface SubscriptionStatusResponse {
   success: true;
@@ -797,20 +883,22 @@ interface SubscriptionStatusResponse {
 Initiate subscription upgrade.
 
 **Request:**
+
 ```typescript
 interface UpgradeRequest {
   plan: 'premium_monthly' | 'premium_yearly';
-  paymentMethod: string;       // Stripe payment method ID
+  paymentMethod: string; // Stripe payment method ID
 }
 ```
 
 **Response:**
+
 ```typescript
 interface UpgradeResponse {
   success: true;
   data: {
     subscriptionId: string;
-    clientSecret: string;      // For Stripe confirmation
+    clientSecret: string; // For Stripe confirmation
     status: 'pending' | 'active';
   };
 }
@@ -822,35 +910,35 @@ interface UpgradeResponse {
 
 ### HTTP Status Codes
 
-| Status | Meaning |
-|--------|---------|
-| 200 | Success |
-| 201 | Created |
-| 400 | Bad Request - Invalid input |
-| 401 | Unauthorized - Invalid or missing token |
-| 402 | Payment Required - Subscription limit reached |
-| 403 | Forbidden - Insufficient permissions |
-| 404 | Not Found - Resource doesn't exist |
-| 422 | Unprocessable Entity - Validation failed |
-| 429 | Too Many Requests - Rate limit exceeded |
-| 500 | Internal Server Error |
-| 503 | Service Unavailable - AI providers down |
+| Status | Meaning                                       |
+| ------ | --------------------------------------------- |
+| 200    | Success                                       |
+| 201    | Created                                       |
+| 400    | Bad Request - Invalid input                   |
+| 401    | Unauthorized - Invalid or missing token       |
+| 402    | Payment Required - Subscription limit reached |
+| 403    | Forbidden - Insufficient permissions          |
+| 404    | Not Found - Resource doesn't exist            |
+| 422    | Unprocessable Entity - Validation failed      |
+| 429    | Too Many Requests - Rate limit exceeded       |
+| 500    | Internal Server Error                         |
+| 503    | Service Unavailable - AI providers down       |
 
 ### Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `AUTH_INVALID_TOKEN` | 401 | JWT token is invalid or expired |
-| `AUTH_MISSING_TOKEN` | 401 | No authorization header provided |
-| `USER_NOT_FOUND` | 404 | User account not found |
-| `PLANT_NOT_FOUND` | 404 | Plant not in user's collection |
-| `VALIDATION_ERROR` | 422 | Request body validation failed |
-| `LIMIT_EXCEEDED` | 402 | Feature usage limit reached |
-| `IMAGE_INVALID` | 400 | Invalid image format |
-| `IMAGE_TOO_LARGE` | 400 | Image exceeds size limit |
-| `IDENTIFICATION_FAILED` | 500 | Could not identify plant |
-| `AI_PROVIDER_ERROR` | 503 | AI service unavailable |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+| Code                    | HTTP Status | Description                      |
+| ----------------------- | ----------- | -------------------------------- |
+| `AUTH_INVALID_TOKEN`    | 401         | JWT token is invalid or expired  |
+| `AUTH_MISSING_TOKEN`    | 401         | No authorization header provided |
+| `USER_NOT_FOUND`        | 404         | User account not found           |
+| `PLANT_NOT_FOUND`       | 404         | Plant not in user's collection   |
+| `VALIDATION_ERROR`      | 422         | Request body validation failed   |
+| `LIMIT_EXCEEDED`        | 402         | Feature usage limit reached      |
+| `IMAGE_INVALID`         | 400         | Invalid image format             |
+| `IMAGE_TOO_LARGE`       | 400         | Image exceeds size limit         |
+| `IDENTIFICATION_FAILED` | 500         | Could not identify plant         |
+| `AI_PROVIDER_ERROR`     | 503         | AI service unavailable           |
+| `RATE_LIMIT_EXCEEDED`   | 429         | Too many requests                |
 
 ### Error Response Example
 
@@ -879,12 +967,12 @@ interface UpgradeResponse {
 
 ### Limits by Tier
 
-| Endpoint | Free Tier | Premium Tier |
-|----------|-----------|--------------|
-| General API | 100/hour | 1000/hour |
-| `/api/v1/identify` | 5/month | Unlimited |
-| `/api/v1/health/assess` | 2/month | Unlimited |
-| `/api/v1/chat` | 10/month | Unlimited |
+| Endpoint                | Free Tier | Premium Tier |
+| ----------------------- | --------- | ------------ |
+| General API             | 100/hour  | 1000/hour    |
+| `/api/v1/identify`      | 5/month   | Unlimited    |
+| `/api/v1/health/assess` | 2/month   | Unlimited    |
+| `/api/v1/chat`          | 10/month  | Unlimited    |
 
 ### Rate Limit Headers
 
@@ -908,4 +996,4 @@ The full OpenAPI 3.0 specification is available at:
 
 ---
 
-*Last Updated: December 2025*
+_Last Updated: December 2025_

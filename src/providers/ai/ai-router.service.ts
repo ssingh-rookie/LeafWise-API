@@ -1,16 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
-import {
-  PlantIdProvider,
-  PlantIdIdentificationResult,
-  PlantIdError,
-} from './plant-id.provider';
-import {
-  GeminiProvider,
-  GeminiIdentificationResult,
-  GeminiError,
-} from './gemini.provider';
+import { PlantIdProvider, PlantIdIdentificationResult, PlantIdError } from './plant-id.provider';
+import { GeminiProvider, GeminiIdentificationResult, GeminiError } from './gemini.provider';
 
 // ============================================================================
 // Types
@@ -62,16 +54,11 @@ export class AIRouterService {
     private readonly geminiProvider: GeminiProvider,
   ) {}
 
-  async identifyPlant(
-    userId: string,
-    images: string[],
-  ): Promise<UnifiedIdentificationResult> {
+  async identifyPlant(userId: string, images: string[]): Promise<UnifiedIdentificationResult> {
     const attemptedProviders: string[] = [];
     let lastError: Error | null = null;
 
-    this.logger.debug(
-      `Starting identification with ${images.length} image(s) for user ${userId}`,
-    );
+    this.logger.debug(`Starting identification with ${images.length} image(s) for user ${userId}`);
 
     // Provider 1: Plant.id (primary)
     attemptedProviders.push('plant-id');
@@ -99,9 +86,7 @@ export class AIRouterService {
         (error as PlantIdError).code,
       );
 
-      this.logger.warn(
-        `Plant.id failed, attempting Gemini fallback: ${(error as Error).message}`,
-      );
+      this.logger.warn(`Plant.id failed, attempting Gemini fallback: ${(error as Error).message}`);
     }
 
     // Provider 2: Gemini (fallback)
@@ -110,13 +95,7 @@ export class AIRouterService {
 
     try {
       const result = await this.geminiProvider.identifyPlant(images);
-      await this.logUsage(
-        userId,
-        'identification',
-        'gemini',
-        Date.now() - geminiStartTime,
-        true,
-      );
+      await this.logUsage(userId, 'identification', 'gemini', Date.now() - geminiStartTime, true);
 
       return this.mapGeminiResult(result);
     } catch (error) {
@@ -141,9 +120,7 @@ export class AIRouterService {
     );
   }
 
-  private mapPlantIdResult(
-    result: PlantIdIdentificationResult,
-  ): UnifiedIdentificationResult {
+  private mapPlantIdResult(result: PlantIdIdentificationResult): UnifiedIdentificationResult {
     return {
       species: {
         scientificName: result.species.scientificName,
@@ -158,9 +135,7 @@ export class AIRouterService {
     };
   }
 
-  private mapGeminiResult(
-    result: GeminiIdentificationResult,
-  ): UnifiedIdentificationResult {
+  private mapGeminiResult(result: GeminiIdentificationResult): UnifiedIdentificationResult {
     return {
       species: {
         scientificName: result.species.scientificName,
@@ -203,22 +178,22 @@ export class AIRouterService {
   }
 
   // Existing stub methods - keep for future implementation
-  async assessHealth(userId: string, imageBase64: string, symptoms?: string) {
+  async assessHealth(_userId: string, _imageBase64: string, _symptoms?: string) {
     this.logger.log('Health assessment requested');
     throw new Error('Not implemented');
   }
 
   async chat(
-    userId: string,
-    systemPrompt: string,
-    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-    options?: { complex?: boolean },
+    _userId: string,
+    _systemPrompt: string,
+    _messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    _options?: { complex?: boolean },
   ) {
     this.logger.log('Chat requested');
     throw new Error('Not implemented');
   }
 
-  async generateEmbedding(text: string) {
+  async generateEmbedding(_text: string) {
     this.logger.log('Embedding generation requested');
     throw new Error('Not implemented');
   }

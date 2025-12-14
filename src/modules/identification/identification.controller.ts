@@ -1,18 +1,5 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  HttpStatus,
-  HttpCode,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-} from '@nestjs/swagger';
+import { Controller, Post, Body, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';

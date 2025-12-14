@@ -24,6 +24,8 @@
     "test:integration": "jest --config ./test/jest-e2e.json --testPathPattern=integration",
     "test:integration:local": "API_BASE_URL=http://localhost:3000 pnpm test:integration",
     "test:integration:staging": "API_BASE_URL=$STAGING_URL pnpm test:integration",
+    "test:preview": "jest --config ./test/jest-preview.json",
+    "test:auth-flow": "npx ts-node test/scripts/test-auth-flow.ts",
     "supabase:start": "npx supabase start",
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",

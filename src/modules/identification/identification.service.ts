@@ -65,10 +65,7 @@ export class IdentificationService {
     private readonly storage: StorageService,
   ) {}
 
-  async identify(
-    userId: string,
-    dto: IdentifyPlantDto,
-  ): Promise<IdentificationResult> {
+  async identify(userId: string, dto: IdentifyPlantDto): Promise<IdentificationResult> {
     const startTime = Date.now();
     this.logger.log(
       `Starting plant identification for user ${userId} with ${dto.images.length} image(s)`,
@@ -91,8 +88,7 @@ export class IdentificationService {
     const speciesId = await this.findOrCreateSpecies(identificationResult);
 
     // Determine if we should include similar species
-    const includeSimilar =
-      identificationResult.species.confidence < LOW_CONFIDENCE_THRESHOLD;
+    const includeSimilar = identificationResult.species.confidence < LOW_CONFIDENCE_THRESHOLD;
 
     const processingTimeMs = Date.now() - startTime;
     this.logger.log(
@@ -108,9 +104,7 @@ export class IdentificationService {
           family: identificationResult.species.family,
           confidence: identificationResult.species.confidence,
         },
-        similarSpecies: includeSimilar
-          ? identificationResult.similarSpecies.slice(0, 5)
-          : [],
+        similarSpecies: includeSimilar ? identificationResult.similarSpecies.slice(0, 5) : [],
         photo: photoUrls,
       },
       meta: {
@@ -169,18 +163,10 @@ export class IdentificationService {
 
     try {
       // Upload original image
-      const url = await this.storage.uploadPhoto(
-        userId,
-        tempId,
-        imageBase64,
-        'identification',
-      );
+      const url = await this.storage.uploadPhoto(userId, tempId, imageBase64, 'identification');
 
       // Generate and upload thumbnail
-      const thumbnailBase64 = await this.generateThumbnail(
-        imageBase64,
-        THUMBNAIL_SIZE,
-      );
+      const thumbnailBase64 = await this.generateThumbnail(imageBase64, THUMBNAIL_SIZE);
       const thumbnailUrl = await this.storage.uploadPhoto(
         userId,
         tempId,
@@ -196,10 +182,7 @@ export class IdentificationService {
     }
   }
 
-  private async generateThumbnail(
-    imageBase64: string,
-    size: number,
-  ): Promise<string> {
+  private async generateThumbnail(imageBase64: string, size: number): Promise<string> {
     try {
       // Dynamic import for serverless optimization
       const sharp = (await import('sharp')).default;
@@ -218,9 +201,7 @@ export class IdentificationService {
     }
   }
 
-  private async findOrCreateSpecies(
-    result: UnifiedIdentificationResult,
-  ): Promise<string | null> {
+  private async findOrCreateSpecies(result: UnifiedIdentificationResult): Promise<string | null> {
     const { species } = result;
 
     try {
