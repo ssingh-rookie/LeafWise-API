@@ -85,6 +85,9 @@ async function bootstrap() {
     return app;
   }
 
+  // Enable graceful shutdown for watch mode
+  app.enableShutdownHooks();
+
   // Local development server
   const port = process.env.PORT || 3000;
   await app.listen(port);
@@ -94,6 +97,16 @@ async function bootstrap() {
   if (process.env.NODE_ENV !== 'production') {
     logger.log(`Swagger docs at http://localhost:${port}/api/docs`);
   }
+
+  // Handle graceful shutdown signals
+  const signals = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
+  signals.forEach((signal) => {
+    process.on(signal, async () => {
+      logger.log(`Received ${signal}, shutting down gracefully...`);
+      await app.close();
+      process.exit(0);
+    });
+  });
 }
 
 // Vercel serverless export
