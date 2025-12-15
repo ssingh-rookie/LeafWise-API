@@ -17,6 +17,15 @@ export interface UnifiedIdentificationResult {
     family: string;
     genus: string;
     confidence: number;
+    // Optional enrichment fields (may be provided by some AI providers)
+    plantIdSpeciesId?: string;
+    description?: string;
+    toxicity?: string;
+    lightRequirement?: string;
+    waterFrequency?: string;
+    humidityLevel?: string;
+    temperature?: string;
+    difficulty?: string;
   };
   similarSpecies: Array<{
     scientificName: string;

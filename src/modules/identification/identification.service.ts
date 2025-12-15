@@ -201,37 +201,126 @@ export class IdentificationService {
     }
   }
 
+  /**
+   * Normalize scientific name for consistent comparison
+   * - Lowercase for case-insensitive matching
+   * - Trim whitespace
+   * - Normalize multiple spaces to single space
+   */
+  private normalizeScientificName(name: string): string {
+    return name.toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+
+  /**
+   * Extract genus from scientific name (first word)
+   * Scientific name format: "Genus species" (e.g., "Monstera deliciosa")
+   */
+  private extractGenus(scientificName: string): string {
+    const genus = scientificName.split(' ')[0];
+    // Capitalize first letter for proper formatting
+    return genus.charAt(0).toUpperCase() + genus.slice(1);
+  }
+
+  /**
+   * Determine what fields should be updated on existing species
+   * Only update if new data is more complete than existing
+   */
+  private getSpeciesUpdates(
+    existing: {
+      plantIdSpeciesId: string | null;
+      description: string | null;
+      toxicity: string | null;
+      commonNames: string[];
+    },
+    newData: UnifiedIdentificationResult['species'],
+  ): Record<string, unknown> {
+    const updates: Record<string, unknown> = {};
+
+    // Update plantIdSpeciesId if not set
+    if (!existing.plantIdSpeciesId && newData.plantIdSpeciesId) {
+      updates.plantIdSpeciesId = newData.plantIdSpeciesId;
+    }
+
+    // Update description if existing is null/empty
+    if (!existing.description && newData.description) {
+      updates.description = newData.description;
+    }
+
+    // Update toxicity if existing is null
+    if (!existing.toxicity && newData.toxicity) {
+      updates.toxicity = newData.toxicity;
+    }
+
+    // Merge common names (add new ones, deduplicated)
+    if (newData.commonNames?.length) {
+      const existingNames = new Set(existing.commonNames.map((n) => n.toLowerCase()));
+      const newNames = newData.commonNames.filter((n) => !existingNames.has(n.toLowerCase()));
+      if (newNames.length > 0) {
+        updates.commonNames = [...existing.commonNames, ...newNames];
+      }
+    }
+
+    return updates;
+  }
+
+  /**
+   * Find existing species or create new one
+   * - Uses case-insensitive search with normalized scientific name
+   * - Enriches existing species with more complete data from AI provider
+   * - Prevents duplicates across users
+   */
   private async findOrCreateSpecies(result: UnifiedIdentificationResult): Promise<string | null> {
     const { species } = result;
 
     try {
-      // Try to find existing species by scientific name
-      const existingSpecies = await this.prisma.client.species.findUnique({
-        where: { scientificName: species.scientificName },
-        select: { id: true },
-      });
+      const normalizedName = this.normalizeScientificName(species.scientificName);
 
-      if (existingSpecies) {
-        return existingSpecies.id;
-      }
-
-      // Create new species record
-      const newSpecies = await this.prisma.client.species.create({
-        data: {
-          scientificName: species.scientificName,
-          commonNames: species.commonNames,
-          family: species.family,
-          genus: species.genus,
-          // Default values for required fields
-          lightRequirement: 'Bright indirect light',
-          waterFrequency: 'When top inch of soil is dry',
-          humidityLevel: 'Medium',
-          temperature: '65-75°F (18-24°C)',
-          difficulty: 'moderate',
+      // Try to find existing species by normalized scientific name (case-insensitive)
+      const existingSpecies = await this.prisma.client.species.findFirst({
+        where: {
+          scientificName: {
+            equals: normalizedName,
+            mode: 'insensitive',
+          },
         },
       });
 
-      this.logger.debug(`Created new species record: ${newSpecies.id}`);
+      if (existingSpecies) {
+        // Update existing species if new data is more complete
+        const updates = this.getSpeciesUpdates(existingSpecies, species);
+
+        if (Object.keys(updates).length > 0) {
+          await this.prisma.client.species.update({
+            where: { id: existingSpecies.id },
+            data: updates,
+          });
+          this.logger.debug(
+            `Updated species ${existingSpecies.id} with new data: ${Object.keys(updates).join(', ')}`,
+          );
+        }
+
+        return existingSpecies.id;
+      }
+
+      // Create new species record with normalized name
+      const newSpecies = await this.prisma.client.species.create({
+        data: {
+          scientificName: normalizedName,
+          commonNames: species.commonNames || [],
+          family: species.family || 'Unknown',
+          genus: species.genus || this.extractGenus(normalizedName),
+          lightRequirement: species.lightRequirement || 'Bright indirect light',
+          waterFrequency: species.waterFrequency || 'When top inch of soil is dry',
+          humidityLevel: species.humidityLevel || 'Medium',
+          temperature: species.temperature || '65-75°F (18-24°C)',
+          difficulty: species.difficulty || 'moderate',
+          description: species.description,
+          toxicity: species.toxicity,
+          plantIdSpeciesId: species.plantIdSpeciesId,
+        },
+      });
+
+      this.logger.debug(`Created new species record: ${newSpecies.id} (${normalizedName})`);
       return newSpecies.id;
     } catch (error) {
       this.logger.error('Failed to find/create species', error);
