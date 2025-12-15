@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreatePlantDto } from './dto';
 
@@ -27,7 +26,8 @@ export class PlantsService {
     nextWaterDue.setDate(nextWaterDue.getDate() + wateringFrequencyDays);
 
     // 4. Create plant with transaction (includes photo if provided)
-    return this.prisma.client.$transaction(async (tx: Prisma.TransactionClient) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.prisma.client.$transaction(async (tx: any) => {
       const plant = await tx.plant.create({
         data: {
           userId,
